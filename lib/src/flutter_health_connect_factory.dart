@@ -30,7 +30,8 @@ class HealthConnectFactory {
   /// On newer versions of Android the Health Connect app is usually installed by default.
   /// On older versions users have to download it from the Play Store.
   static Future<bool> checkIfHealthConnectAppInstalled() async {
-    return await _channel.invokeMethod('checkIfHealthConnectAppInstalled') as bool;
+    return await _channel.invokeMethod('checkIfHealthConnectAppInstalled')
+        as bool;
   }
 
   /// Opens the Play Store page to download and install the Health Connect app.
@@ -41,17 +42,20 @@ class HealthConnectFactory {
   /// Opens the Health Connect setting page where users can see and change the permissions they granted to your app.
   /// See: https://developer.android.com/health-and-fitness/guides/health-connect/develop/get-started#step-4
   static Future<bool> openHealthConnectSettings() async {
-    final bool isHealthConnectAppInstalled = await checkIfHealthConnectAppInstalled();
+    final bool isHealthConnectAppInstalled =
+        await checkIfHealthConnectAppInstalled();
     if (!isHealthConnectAppInstalled) {
       throw const FlutterHealthConnectException(
         code: ErrorCode.unableToOpenHealthConnectApp,
-        message: 'The Health Connect app is not installed, please install it first.',
+        message:
+            'The Health Connect app is not installed, please install it first.',
       );
     }
     try {
       return await _channel.invokeMethod('openHealthConnectSettings') as bool;
     } on PlatformException catch (e, stackTrace) {
-      final String errorMessage = e.errorCode == ErrorCode.unableToOpenHealthConnectApp
+      final String errorMessage = e.errorCode ==
+              ErrorCode.unableToOpenHealthConnectApp
           ? 'The Health Connect app is not installed, please install it first.\n$e'
           : e.toString();
       throw FlutterHealthConnectException(
@@ -115,11 +119,11 @@ class HealthConnectFactory {
     }
   }
 
-
   /// Gat a change token to be used with [getChanges].
   ///
   /// See: https://developer.android.com/health-and-fitness/guides/health-connect/develop/sync-data
-  static Future<String> getChangesToken(List<HealthConnectDataType> types) async {
+  static Future<String> getChangesToken(
+      List<HealthConnectDataType> types) async {
     try {
       return await _channel.invokeMethod(
         'getChangesToken',
@@ -187,9 +191,12 @@ class HealthConnectFactory {
       'ascendingOrder': ascendingOrder,
     };
     try {
-      final List<dynamic>? data = await _channel.invokeMethod('getRecords', args);
+      final List<dynamic>? data =
+          await _channel.invokeMethod('getRecords', args);
       if (data != null && data.isNotEmpty) {
-        final List<dynamic> records = data.map((e) => mapToRecord(type, Map<String, dynamic>.from(e))).toList();
+        final List<dynamic> records = data
+            .map((e) => mapToRecord(type, Map<String, dynamic>.from(e)))
+            .toList();
         return records;
       } else {
         return [];
@@ -213,10 +220,12 @@ class HealthConnectFactory {
   }) async {
     final args = <String, dynamic>{
       'type': type.name,
-      'data': List<Map<String, dynamic>>.from(data.map((Record e) => e.toMap())),
+      'data':
+          List<Map<String, dynamic>>.from(data.map((Record e) => e.toMap())),
     };
     try {
-      final List<dynamic>? result = await _channel.invokeMethod('writeData', args);
+      final List<dynamic>? result =
+          await _channel.invokeMethod('writeData', args);
       return result == null ? [] : result.cast<String>();
     } on PlatformException catch (e, stackTrace) {
       throw FlutterHealthConnectException(
@@ -311,7 +320,7 @@ class HealthConnectFactory {
   ///  var stepsCountTotal = result[StepsRecord.aggregationKeyCountTotal];
   ///  var exerciseDurationTotal = result[ExerciseSessionRecord.aggregationKeyExerciseDurationTotal];
   ///
-  static Future<Map<String, double>> aggregate({
+  static Future<Map<String, dynamic>> aggregate({
     required List<String> aggregationKeys,
     required DateTime startTime,
     required DateTime endTime,
@@ -328,7 +337,9 @@ class HealthConnectFactory {
     };
 
     try {
-      return await _channel.invokeMethod('aggregate', args).then((value) => Map<String, double>.from(value));
+      return await _channel
+          .invokeMethod('aggregate', args)
+          .then((value) => Map<String, dynamic>.from(value));
     } on PlatformException catch (e, stackTrace) {
       throw FlutterHealthConnectException(
         code: e.errorCode,
@@ -365,7 +376,8 @@ class HealthConnectFactory {
     }
   }
 
-  static dynamic mapToRecord(HealthConnectDataType type, Map<String, dynamic> map) {
+  static dynamic mapToRecord(
+      HealthConnectDataType type, Map<String, dynamic> map) {
     switch (type) {
       case HealthConnectDataType.ActiveCaloriesBurned:
         return ActiveCaloriesBurnedRecord.fromMap(map);

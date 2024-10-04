@@ -1,5 +1,7 @@
 import 'dart:async';
-
+import 'dart:developer' as dev;
+import 'dart:developer';
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_health_connect/flutter_health_connect.dart';
@@ -34,6 +36,7 @@ class _MyAppState extends State<MyApp> {
   final List<HealthConnectDataType> _types = [
     HealthConnectDataType.Steps,
     HealthConnectDataType.ExerciseSession,
+    HealthConnectDataType.TotalCaloriesBurned
     // HealthConnectDataType.HeartRate,
     // HealthConnectDataType.SleepSession,
     // HealthConnectDataType.OxygenSaturation,
@@ -190,7 +193,7 @@ class _MyAppState extends State<MyApp> {
   void _onGetRecordsByTimeButtonTap() async {
     try {
       final DateTime startTime =
-          DateTime.now().subtract(const Duration(days: 4));
+          DateTime.now().subtract(const Duration(days: 1));
       final DateTime endTime = DateTime.now();
       final List<Future<dynamic>> requests = [];
       final Map<String, dynamic> typePoints = {};
@@ -296,20 +299,60 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
+  List<List<DateTime>> getDateRanges(DateTime startDate, DateTime endDate) {
+    List<List<DateTime>> dateRanges = [];
+    if (endDate.isBefore(startDate)) {
+      return dateRanges;
+    }
+    DateTime currentDate =
+        DateTime(startDate.year, startDate.month, startDate.day);
+    while (currentDate.isBefore(
+        DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59))) {
+      DateTime start = currentDate;
+      DateTime end =
+          currentDate.add(const Duration(hours: 23, minutes: 59, seconds: 59));
+      dateRanges.add([start, end]);
+      currentDate = currentDate.add(const Duration(days: 1));
+    }
+    return dateRanges;
+  }
+
   void _onGetAggregatedDataButtonTap() async {
     try {
+      log(DateTime.now().toString());
       final DateTime startTime =
-          DateTime.now().subtract(const Duration(days: 1));
+          DateTime.now().subtract(const Duration(days: 90));
       final DateTime endTime = DateTime.now();
-      final Map<String, double> result = await HealthConnectFactory.aggregate(
-        aggregationKeys: [
-          StepsRecord.aggregationKeyCountTotal,
-          ExerciseSessionRecord.aggregationKeyExerciseDurationTotal,
-        ],
-        startTime: startTime,
-        endTime: endTime,
-      );
-      _updateResultText('$result');
+      final List<List<DateTime>> dateRanges = getDateRanges(startTime, endTime);
+      List<Map<String, dynamic>> activityDataList = [];
+      for (final dates in dateRanges) {
+        final Map<String, dynamic> result =
+            await HealthConnectFactory.aggregate(
+          aggregationKeys: [
+            StepsRecord.aggregationKeyCountTotal,
+            // ExerciseSessionRecord.aggregationKeyExerciseDurationTotal,
+            TotalCaloriesBurnedRecord.aggregationKeyEnergyTotal
+          ],
+          startTime: dates[0],
+          endTime: dates[1],
+        );
+        Map<String, dynamic> data = {
+          'activityDate': DateFormat('yyyy-MM-dd').format(dates[0])
+        };
+        int calories = (double.tryParse(
+                    (result['TotalCaloriesBurnedRecordEnergyTotal'].toString())
+                        .split(' ')[0]) ??
+                0.0)
+            .round();
+        data.addAll({
+          'stepCount': result['StepsRecordCountTotal'],
+          'calorieCount': calories
+        });
+        activityDataList.add(data);
+      }
+      dev.log(activityDataList.toString());
+      _updateResultText('$activityDataList');
+      log(DateTime.now().toString());
     } catch (e, stackTrace) {
       final String errorMessage = '$e,\n$stackTrace';
       debugPrint(errorMessage);
